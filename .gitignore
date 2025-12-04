@@ -1,0 +1,29 @@
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build outputs
+bin/
+obj/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# Log files
+*.log
+
+# Publish output
+publish/
+
+# IDE folders
+.idea/

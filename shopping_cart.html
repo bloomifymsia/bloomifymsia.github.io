@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloomify Shopping Cart</title>
+    
+    <!-- 1. Load React and ReactDOM from the internet (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- 2. Load Babel (translates JSX to browser-friendly code) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 3. Load Tailwind CSS (for styling) and define custom colors -->
+    <script src="https://cdn.tailwindcss.com">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Custom colors based on user's request
+                        'bloom-primary': '#F88379', // Coral/Salmon
+                        'bloom-light': '#FFF5EE',   // Light Cream/Off-White
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Custom Styles for clean look -->
+    <style>
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- 4. Your React Code goes here -->
+    <script type="text/babel">
+        
+        // --- ICONS ---
+        const Icon = ({ children, size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+        
+        const ShoppingBag = (props) => <Icon {...props}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></Icon>;
+        const Trash2 = (props) => <Icon {...props}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
+
+        // --- LOCAL STORAGE HELPERS ---
+
+        // Function to safely load cart data from localStorage
+        const loadCartFromLocalStorage = () => {
+            try {
+                const storedCart = localStorage.getItem('bloomifyCart');
+                return storedCart ? JSON.parse(storedCart) : [];
+            } catch (e) {
+                console.error("Error loading cart from localStorage:", e);
+                return [];
+            }
+        };
+
+        // Function to safely save cart data to localStorage
+        const saveCartToLocalStorage = (cart) => {
+            try {
+                localStorage.setItem('bloomifyCart', JSON.stringify(cart));
+            } catch (e) {
+                console.error("Error saving cart to localStorage:", e);
+            }
+        };
+
+
+        // --- CART ITEM COMPONENT ---
+        const CartItem = ({ item, updateQuantity, removeItem }) => (
+            <div className="flex items-start py-4 border-b border-gray-100 last:border-b-0">
+                <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-20 h-20 object-cover rounded-lg mr-4 flex-shrink-0 bg-gray-100"
+                    // Placeholder fallback in case the image fails to load
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/80x80/cccccc/333333?text=Product"; }}
+                />
+                
+                <div className="flex-grow">
+                    <h3 className="font-semibold text-gray-900 line-clamp-2">{item.name}</h3>
+                    <p className="text-sm text-gray-500 mb-2">Brand: {item.brand}</p>
+                    {item.shade && <p className="text-xs text-gray-600 mb-1">Shade: <span className="font-semibold text-gray-900">{item.shade}</span></p>}
+                    <p className="font-bold text-bloom-primary text-lg">RM {item.price.toFixed(2)}</p>
+                </div>
+
+                <div className="flex flex-col items-end justify-between h-20">
+                    {/* Quantity Control */}
+                    <div className="flex items-center border border-gray-300 rounded-full overflow-hidden">
+                        <button 
+                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            className="p-1.5 text-gray-600 hover:bg-gray-100 transition-colors font-bold w-8 h-8"
+                        >
+                            -
+                        </button>
+                        <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                        <button 
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="p-1.5 text-gray-600 hover:bg-gray-100 transition-colors font-bold w-8 h-8"
+                        >
+                            +
+                        </button>
+                    </div>
+
+                    {/* Remove Button */}
+                    <button 
+                        onClick={() => removeItem(item.id)}
+                        className="text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 text-xs mt-2"
+                    >
+                        <Trash2 size={16} /> Remove
+                    </button>
+                </div>
+            </div>
+        );
+
+        // --- MAIN CART VIEW COMPONENT ---
+        const CartView = () => {
+            // Initialize cart state by reading from localStorage
+            const [cartItems, setCartItems] = React.useState(loadCartFromLocalStorage);
+            const [promoCode, setPromoCode] = React.useState('');
+            const [promoApplied, setPromoApplied] = React.useState(false);
+            const [paymentMethod, setPaymentMethod] = React.useState('card');
+            
+            const SHIPPING_FEE = 5.99;
+            const FREE_SHIPPING_THRESHOLD = 50.00;
+            const VALID_PROMO_CODE = 'BLOOM20';
+            const PROMO_DISCOUNT_PERCENT = 15;
+
+            // Effect to save cart to localStorage whenever cartItems changes
+            React.useEffect(() => {
+                saveCartToLocalStorage(cartItems);
+            }, [cartItems]);
+
+            // Calculations
+            const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+            const discountAmount = promoApplied ? (subtotal * PROMO_DISCOUNT_PERCENT) / 100 : 0;
+            const subtotalAfterDiscount = subtotal - discountAmount;
+            const shippingCost = subtotalAfterDiscount >= FREE_SHIPPING_THRESHOLD ? 0.00 : SHIPPING_FEE;
+            const grandTotal = subtotalAfterDiscount + shippingCost;
+            
+            const isCartEmpty = cartItems.length === 0;
+
+            const methodLabels = {
+                card: 'Credit / Debit Card',
+                fpx: 'FPX',
+                paypal: 'PayPal',
+                atome: 'Atome'
+            };
+            const methodLabel = methodLabels[paymentMethod] || paymentMethod;
+
+            const updateQuantity = (id, newQuantity) => {
+                if (newQuantity < 1) return; 
+                setCartItems(prevItems => 
+                    prevItems.map(item => 
+                        item.id === id ? { ...item, quantity: newQuantity } : item
+                    )
+                );
+            };
+
+            const removeItem = (id) => {
+                setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+            };
+
+            const handleCheckout = () => {
+                if (isCartEmpty) {
+                    const message = "Your cart is empty! Please add items before checking out.";
+                    console.log(message);
+                    alert(message);
+                    return;
+                }
+
+                const methodLabels = {
+                    card: 'Credit / Debit Card',
+                    fpx: 'FPX',
+                    paypal: 'PayPal',
+                    atome: 'Atome'
+                };
+                const methodLabel = methodLabels[paymentMethod] || paymentMethod;
+
+                const paymentMessage = `Payment of RM ${grandTotal.toFixed(2)} successful using ${methodLabel}. Thank you! Redirecting to Bloomify.`;
+                console.log(paymentMessage);
+                alert(paymentMessage);
+
+                // Clear cart and persist
+                setCartItems([]);
+                saveCartToLocalStorage([]);
+
+                // Redirect back to homepage after a short delay
+                setTimeout(() => { window.location.href = 'index.html'; }, 800);
+            };
+
+            const handleApplyPromo = () => {
+                if (promoCode.trim().toUpperCase() === VALID_PROMO_CODE) {
+                    setPromoApplied(true);
+                    setPromoCode('');
+                } else {
+                    alert('Invalid promo code. Try BLOOM20!');
+                    setPromoCode('');
+                }
+            };
+
+            // Payment simulation state handled below in UI and checkout
+
+            return (
+                <main className="max-w-6xl mx-auto px-4 py-12">
+                    <div className="flex items-center justify-between mb-6 border-b pb-4">
+                        <h1 className="text-3xl font-bold text-gray-900">
+                            Your Shopping Bag ({cartItems.length} {cartItems.length === 1 ? 'Item' : 'Items'})
+                        </h1>
+                        <div className="flex items-center gap-3">
+                            <a href="index.html" className="bg-gray-200 px-3 py-2 rounded text-sm">Continue Shopping</a>
+                        </div>
+                    </div>
+
+                    {isCartEmpty ? (
+                        <div className="text-center py-16 border rounded-xl bg-gray-50">
+                            <ShoppingBag size={48} className="mx-auto text-gray-400 mb-4"/>
+                            <p className="text-xl font-medium text-gray-700">Your Bloomify cart is empty.</p>
+                            <p className="text-gray-500 mt-2">Time to find your next glow-up product!</p>
+                            <a href="index.html" className="inline-block mt-6 bg-bloom-primary hover:bg-bloom-primary/90 text-white px-6 py-2 rounded-full font-medium transition-all">
+                                Continue Shopping
+                            </a>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Left Column: Cart Items */}
+                            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                                <div className="divide-y divide-gray-100">
+                                    {cartItems.map(item => (
+                                        <CartItem 
+                                            key={item.id} 
+                                            item={item} 
+                                            updateQuantity={updateQuantity} 
+                                            removeItem={removeItem}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Right Column: Order Summary */}
+                            <div className="lg:col-span-1 bg-bloom-light p-6 rounded-xl shadow-md border border-gray-100 h-fit sticky top-20">
+                                <h2 className="text-xl font-bold text-gray-900 mb-6 border-b border-bloom-primary/50 pb-3">Order Summary</h2>
+
+                                {/* Subtotal and Shipping */}
+                                <div className="space-y-3 mb-6 text-gray-700">
+                                    <div className="flex justify-between">
+                                        <span>Subtotal ({cartItems.length} items)</span>
+                                        <span className="font-medium">RM {subtotal.toFixed(2)}</span>
+                                    </div>
+                                    {promoApplied && (
+                                        <div className="flex justify-between text-green-600">
+                                            <span>Discount (BLOOM20 - 15%)</span>
+                                            <span className="font-medium">-RM {discountAmount.toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between">
+                                        <span>Estimated Shipping</span>
+                                        {shippingCost === 0 ? (
+                                            <span className="font-bold text-green-600">FREE</span>
+                                        ) : (
+                                            <span className="font-medium">RM {shippingCost.toFixed(2)}</span>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Free Shipping Progress Bar */}
+                                    {shippingCost > 0 && (
+                                        <div className="pt-2 text-sm text-center">
+                                            <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1.5">
+                                                <div 
+                                                    className="bg-bloom-primary h-1.5 rounded-full transition-all duration-500" 
+                                                    style={{ width: `${Math.min(100, (subtotalAfterDiscount / FREE_SHIPPING_THRESHOLD) * 100)}%` }}
+                                                ></div>
+                                            </div>
+                                            <p className="text-xs text-gray-600">
+                                                Spend <span className="font-bold text-bloom-primary">RM {(FREE_SHIPPING_THRESHOLD - subtotalAfterDiscount).toFixed(2)}</span> more for FREE Shipping!
+                                            </p>
+                                        </div>
+                                    )}
+
+                                </div>
+                                
+                                {/* Promo Code */}
+                                <div className="mb-6 pt-4 border-t border-gray-200">
+                                    <label htmlFor="promo" className="block text-sm font-medium text-gray-700 mb-2">Promo Code</label>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            id="promo" 
+                                            placeholder="BLOOM20" 
+                                            value={promoCode}
+                                            onChange={(e) => setPromoCode(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleApplyPromo(); }}
+                                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-bloom-primary focus:border-bloom-primary"
+                                            disabled={promoApplied}
+                                        />
+                                        <button 
+                                            onClick={handleApplyPromo}
+                                            disabled={promoApplied}
+                                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${promoApplied ? 'bg-green-600 text-white' : 'bg-pink-400 text-white hover:bg-pink-200'}`}
+                                        >
+                                            {promoApplied ? '✓ Applied' : 'Apply'}
+                                        </button>
+                                    </div>
+                                    {promoApplied && (
+                                        <p className="text-xs text-green-600 mt-2">Promo code BLOOM20 applied! You saved RM {discountAmount.toFixed(2)}</p>
+                                    )}
+                                </div>
+
+                                {/* Payment Method (Simulation) */}
+                                <div className="mb-4 pt-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method (Simulation)</label>
+                                    <div className="flex flex-col gap-2 text-sm">
+                                        <label className="inline-flex items-center gap-2">
+                                            <input type="radio" name="payment" value="card" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} className="form-radio" />
+                                            <span>Credit / Debit Card</span>
+                                        </label>
+                                        <label className="inline-flex items-center gap-2">
+                                            <input type="radio" name="payment" value="fpx" checked={paymentMethod === 'fpx'} onChange={() => setPaymentMethod('fpx')} className="form-radio" />
+                                            <span>FPX (Bank Transfer)</span>
+                                        </label>
+                                        <label className="inline-flex items-center gap-2">
+                                            <input type="radio" name="payment" value="paypal" checked={paymentMethod === 'paypal'} onChange={() => setPaymentMethod('paypal')} className="form-radio" />
+                                            <span>PayPal</span>
+                                        </label>
+                                        <label className="inline-flex items-center gap-2">
+                                            <input type="radio" name="payment" value="atome" checked={paymentMethod === 'atome'} onChange={() => setPaymentMethod('atome')} className="form-radio" />
+                                            <span>Atome (Buy Now, Pay Later)</span>
+                                        </label>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">This is a simulation — no real payment will be processed.</p>
+                                </div>
+
+                                {/* Grand Total */}
+                                <div className="flex justify-between items-center text-xl font-bold pt-4 border-t border-gray-300">
+                                    <span>Order Total</span>
+                                    <span className="text-bloom-primary">RM {grandTotal.toFixed(2)}</span>
+                                </div>
+
+                                {/* Checkout Button */}
+                                <button 
+                                    onClick={handleCheckout}
+                                    className="w-full mt-6 bg-[#FF69B4] hover:bg-[#FFB6C1] text-white py-3 rounded-full font-medium text-lg transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+                                >
+                                    <ShoppingBag size={20} />
+                                    <div className="flex flex-col items-center leading-tight">
+                                        <span className="block text-white font-semibold">Confirm Order</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    
+                </main>
+            );
+        };
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => (
+            <div className="font-sans text-gray-800 bg-white min-h-screen">
+                {/* Top Banner & simplified Nav for this dedicated cart file */}
+                <div className="bg-bloom-primary text-white text-xs text-center py-2 px-4">
+                    New Members get <span className="font-bold">20% OFF</span> their first order with code: BLOOM20
+                </div>
+                <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+                    <div className="max-w-6xl mx-auto px-4 flex justify-between items-center h-16">
+                        <a href="index.html" className="text-2xl font-bold text-pink-400 text-bloom-primary tracking-tight cursor-pointer">
+                            BLOOMIFY
+                        </a>
+                        <div className="text-lg font-medium text-gray-600">
+                            Shopping Cart
+                        </div>
+                    </div>
+                </nav>
+                
+                <CartView />
+
+                {/* Footer */}
+                <footer className="bg-gray-900 text-white py-12 mt-12">
+                    <div className="max-w-6xl mx-auto px-4 text-center text-xs text-gray-500">
+                    © 2025 Bloomify. All rights reserved.
+                    </div>
+                </footer>
+            </div>
+        );
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

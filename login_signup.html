@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloomify Authentication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        window.onload = function() {
+            // Auth Form Toggle Logic
+            const authCard = document.getElementById('auth-card');
+            const loginView = document.getElementById('login-view');
+            const signupView = document.getElementById('signup-view');
+            const toggleButton = document.getElementById('toggle-auth');
+            const userIdDisplay = document.getElementById('user-id-display');
+
+            let isLogin = true;
+
+            // Hide user ID display since we're not using Firebase
+            userIdDisplay.parentElement.style.display = 'none';
+
+            const updateView = () => {
+                if (isLogin) {
+                    loginView.classList.remove('hidden');
+                    signupView.classList.add('hidden');
+                    toggleButton.textContent = "Need an account? Sign Up";
+                } else {
+                    loginView.classList.add('hidden');
+                    signupView.classList.remove('hidden');
+                    toggleButton.textContent = "Already have an account? Log In";
+                }
+            };
+
+            toggleButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                isLogin = !isLogin;
+                updateView();
+            });
+
+            // Initial view setup
+            updateView();
+            
+            // Form Submission Handlers for Simulation
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                alert('Successfully logged in for Simulation, teleporting back to Bloomify');
+                window.location.href = 'index.html';
+            };
+
+            const handleSignup = (e) => {
+                e.preventDefault();
+                const email = document.getElementById('signup-email').value;
+                const password = document.getElementById('signup-password').value;
+                
+                alert('Successfully signed up for Simulation, teleporting back to Bloomify');
+                window.location.href = 'index.html';
+            };
+            
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('signup-form').addEventListener('submit', handleSignup);
+        };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div id="auth-card" class="w-full max-w-md bg-pink p-8 md:p-10 rounded-2xl shadow-2xl transition-all duration-500 ease-in-out">
+        
+        <div class="text-center mb-6">
+            <svg class="mx-auto h-10 w-10 text-pink-600" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+            <h1 class="mt-4 text-3xl font-extrabold text-gray-900">
+                Access to Bloomify
+            </h1>
+            <p class="text-sm text-gray-500 mt-1" id="user-id-display">
+                Welcome to Bloomify
+            </p>
+        </div>
+
+
+        <!-- Login View -->
+        <div id="login-view" class="space-y-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Log In</h2>
+            <form id="login-form">
+                <div>
+                    <label for="login-email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+                    <input id="login-email" type="email" autocomplete="email" required 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-pink-500 focus:border-pink-500 transition duration-150" 
+                           placeholder="you@example.com">
+                </div>
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input id="login-password" type="password" autocomplete="current-password" required 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-pink-500 focus:border-pink-500 transition duration-150" 
+                           placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition duration-150">
+                    Log In
+                </button>
+            </form>
+        </div>
+
+        <!-- Sign Up View -->
+        <div id="signup-view" class="space-y-6 hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Sign Up</h2>
+            <form id="signup-form">
+                <div>
+                    <label for="signup-email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+                    <input id="signup-email" type="email" autocomplete="email" required 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-pink-500 focus:border-pink-500 transition duration-150" 
+                           placeholder="new_user@example.com">
+                </div>
+                <div>
+                    <label for="signup-password" class="block text-sm font-medium text-gray-700 mb-1">Password (min 8 chars)</label>
+                    <input id="signup-password" type="password" autocomplete="new-password" required 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-pink-500 focus:border-pink-500 transition duration-150" 
+                           placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition duration-150">
+                    Sign Up
+                </button>
+            </form>
+        </div>
+
+        <!-- Toggle Button -->
+        <div class="mt-6 text-center">
+            <a href="#" id="toggle-auth" class="text-sm font-medium text-pink-600 hover:text-pink-500 transition duration-150">
+                Already have an account? Log In
+            </a>
+        </div>
+
+    </div>
+
+</body>
+</html>
