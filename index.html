@@ -321,7 +321,7 @@
                 }
             };
 
-            const categories = ["All", "Skincare", "Makeup", "Body", "Health", "Brands", "Men"];
+            const categories = ["All", "Skincare", "Makeup", "Body"];
 
             const filteredProducts = activeCategory === 'All' 
                 ? products 
@@ -650,20 +650,24 @@
 
                     {/* Promo Banners Middle */}
                     <div className="grid md:grid-cols-2 gap-4 mt-16">
-                    <div className="bg-rose-50 rounded-2xl p-8 flex flex-col justify-center items-start min-h-[200px]">
-                        <span className="text-rose-500 font-bold text-sm mb-2">HOT DEAL</span>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">Buy 1 Get 1 Free <br/>Sheet Masks</h3>
-                        <button onClick={handlePromoClick} className="flex items-center gap-2 text-gray-900 font-medium border-b border-gray-900 pb-0.5 hover:text-rose-600 hover:border-rose-600 transition-all">
-                            Shop Sale <ChevronRight size={16} />
-                        </button>
-                    </div>
-                    <div className="bg-rose-50 rounded-2xl p-8 flex flex-col justify-center items-start min-h-[200px]">
-                        <span className="text-rose-500 font-bold text-sm mb-2">NEW ARRIVAL</span>
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">Serum <br/>Collection</h3>
-                        <button onClick={handlePromoClick} className="flex items-center gap-2 text-gray-900 font-medium border-b border-gray-900 pb-0.5 hover:text-rose-600 hover:border-rose-600 transition-all">
-                            Discover <ChevronRight size={16} />
-                        </button>
-                    </div>
+                        {/* PROMO BOX 1: Sale */}
+                        <a href="search_bloomify.html?q=Sale" className="bg-rose-50 rounded-2xl p-8 flex flex-col justify-center items-start min-h-[200px] hover:bg-rose-100 transition-colors">
+                            <span className="text-rose-500 font-bold text-sm mb-2">HOT DEAL</span>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4">Check Out Our <br/>On Sale Products</h3>
+                            {/* Note: I'm keeping the button here, but since the whole <a> element is clickable, the button is mostly for styling/icon */}
+                            <div className="flex items-center gap-2 text-gray-900 font-medium border-b border-gray-900 pb-0.5 hover:text-rose-600 hover:border-rose-600 transition-all">
+                                Shop Sale <ChevronRight size={16} />
+                            </div>
+                        </a>
+    
+                        {/* PROMO BOX 2: Serum Collection */}
+                        <a href="search_bloomify.html?q=Serum" className="bg-rose-50 rounded-2xl p-8 flex flex-col justify-center items-start min-h-[200px] hover:bg-rose-100 transition-colors">
+                            <span className="text-rose-500 font-bold text-sm mb-2">NEW ARRIVAL</span>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-4">Serum <br/>Collection</h3>
+                            <div className="flex items-center gap-2 text-gray-900 font-medium border-b border-gray-900 pb-0.5 hover:text-rose-600 hover:border-rose-600 transition-all">
+                                Discover <ChevronRight size={16} />
+                            </div>
+                        </a>
                     </div>
 
                 </main>
